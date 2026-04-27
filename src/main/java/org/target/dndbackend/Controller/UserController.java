@@ -2,15 +2,15 @@ package org.target.dndbackend.Controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import org.target.dndbackend.Dto.LoginRequest;
-import org.target.dndbackend.Dto.LoginResponse;
-import org.target.dndbackend.Dto.RegisterRequest;
-import org.target.dndbackend.Dto.RegisterResponse;
+import org.target.dndbackend.Dto.*;
 import org.target.dndbackend.Entity.User;
 import org.target.dndbackend.Repository.UserRepository;
 import org.target.dndbackend.Utils.JwtUtil;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -21,7 +21,11 @@ public class UserController {
     private final JwtUtil jwtUtil;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-
+    @GetMapping("/all")
+    public ResponseEntity<?> getUsers() {
+        List<UserNameAndEmail> res=userRepository.findAllNameAndEmail();
+        return ResponseEntity.ok(res);
+    }
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
 

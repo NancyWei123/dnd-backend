@@ -39,7 +39,8 @@ public class Book {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
+    @Column(name = "permission")
+    private String permission;
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();

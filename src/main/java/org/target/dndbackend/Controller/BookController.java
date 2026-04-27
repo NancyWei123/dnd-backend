@@ -6,9 +6,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.target.dndbackend.Dto.BookResponse;
 import org.target.dndbackend.Dto.CreateBookRequest;
+import org.target.dndbackend.Dto.UpdateBookReadersRequest;
 import org.target.dndbackend.Dto.UpdateBookRequest;
 import org.target.dndbackend.Entity.Book;
+import org.target.dndbackend.Entity.BookReaderPermission;
 import org.target.dndbackend.Entity.User;
+import org.target.dndbackend.Repository.BookReaderPermissionRepository;
 import org.target.dndbackend.Repository.BookRepository;
 import org.target.dndbackend.Repository.UserRepository;
 
@@ -21,7 +24,37 @@ public class BookController {
 
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
+    private final BookReaderPermissionRepository bookReaderPermissionRepository;
+    @PostMapping("/{bookId}/readers")
+    public ResponseEntity<?> updateBookReaders(
+            Authentication authentication,
+            @PathVariable Long bookId,
+            @RequestBody UpdateBookReadersRequest request
+    ) {
+        Long userId = (Long) authentication.getPrincipal();
 
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new RuntimeException("Book not found"));
+
+        if (!book.getUser().getId().equals(userId)) {
+            return ResponseEntity.status(403).body("You cannot update readers of this book");
+        }
+
+        bookReaderPermissionRepository.deleteByBook_Id(bookId);
+
+        for (Long readerId : request.getUserIds()) {
+            User reader = userRepository.findById(readerId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            BookReaderPermission permission = new BookReaderPermission();
+            permission.setBook(book);
+            permission.setUser(reader);
+
+            bookReaderPermissionRepository.save(permission);
+        }
+
+        return ResponseEntity.ok("Book readers updated successfully");
+    }
     @PostMapping
     public ResponseEntity<?> createBook(
             Authentication authentication,
@@ -42,6 +75,12 @@ public class BookController {
             book.setStatus(request.getStatus());
         }
 
+        if (request.getPermission() == null || request.getPermission().isBlank()) {
+            book.setPermission("private");
+        } else {
+            book.setPermission(request.getPermission());
+        }
+
         Book savedBook = bookRepository.save(book);
 
         return ResponseEntity.ok(toResponse(savedBook));
@@ -49,7 +88,8 @@ public class BookController {
 
     @GetMapping("/all")
     public ResponseEntity<?> getAllBooks(Authentication authentication) {
-        List<BookResponse> books = bookRepository.findAll()
+        Long userId = (Long) authentication.getPrincipal();
+        List<BookResponse> books = bookRepository.findReadableBooksByUserId(userId)
                 .stream()
                 .map(this::toResponse)
                 .toList();

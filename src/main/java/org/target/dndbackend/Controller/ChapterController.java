@@ -1,6 +1,7 @@
 package org.target.dndbackend.Controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -9,6 +10,7 @@ import org.target.dndbackend.Dto.CreateChapterRequest;
 import org.target.dndbackend.Dto.UpdateChapterRequest;
 import org.target.dndbackend.Entity.Book;
 import org.target.dndbackend.Entity.Chapter;
+import org.target.dndbackend.Repository.BookReaderPermissionRepository;
 import org.target.dndbackend.Repository.BookRepository;
 import org.target.dndbackend.Repository.ChapterRepository;
 
@@ -21,6 +23,7 @@ public class ChapterController {
 
     private final ChapterRepository chapterRepository;
     private final BookRepository bookRepository;
+    private final BookReaderPermissionRepository bookReaderPermissionRepository;
 
     @PostMapping
     public ResponseEntity<?> createChapter(
@@ -58,8 +61,18 @@ public class ChapterController {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new RuntimeException("Book not found"));
 
-        if (!book.getUser().getId().equals(userId)) {
-            return ResponseEntity.status(403).body("You cannot view chapters of this book");
+        boolean isOwner = book.getUser().getId().equals(userId);
+
+        boolean isPublic = "public".equalsIgnoreCase(book.getPermission());
+
+        boolean isProtectedReader =
+                "protected".equalsIgnoreCase(book.getPermission())
+                        && bookReaderPermissionRepository.existsByBook_IdAndUser_Id(bookId, userId);
+
+        if (!isOwner && !isPublic && !isProtectedReader) {
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .body("You cannot view chapters of this book");
         }
 
         List<ChapterResponse> chapters = chapterRepository
@@ -82,12 +95,26 @@ public class ChapterController {
         Chapter chapter = chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new RuntimeException("Chapter not found"));
 
-        if (!chapter.getBook().getId().equals(bookId)) {
-            return ResponseEntity.badRequest().body("Chapter does not belong to this book");
+        Book book = chapter.getBook();
+
+        if (!book.getId().equals(bookId)) {
+            return ResponseEntity
+                    .badRequest()
+                    .body("Chapter does not belong to this book");
         }
 
-        if (!chapter.getBook().getUser().getId().equals(userId)) {
-            return ResponseEntity.status(403).body("You cannot view this chapter");
+        boolean isOwner = book.getUser().getId().equals(userId);
+
+        boolean isPublic = "public".equalsIgnoreCase(book.getPermission());
+
+        boolean isProtectedReader =
+                "protected".equalsIgnoreCase(book.getPermission())
+                        && bookReaderPermissionRepository.existsByBook_IdAndUser_Id(bookId, userId);
+
+        if (!isOwner && !isPublic && !isProtectedReader) {
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .body("You cannot view this chapter");
         }
 
         return ResponseEntity.ok(toResponse(chapter));
