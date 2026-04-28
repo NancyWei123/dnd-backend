@@ -8,9 +8,12 @@ import org.springframework.web.bind.annotation.*;
 import org.target.dndbackend.Dto.*;
 import org.target.dndbackend.Entity.User;
 import org.target.dndbackend.Repository.UserRepository;
+import org.target.dndbackend.Service.EmailService;
+import org.target.dndbackend.Service.VerificationCodeService;
 import org.target.dndbackend.Utils.JwtUtil;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -19,8 +22,82 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+    private final VerificationCodeService verificationCodeService;
+    private final EmailService emailService;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    @PostMapping("/send-code")
+    public ResponseEntity<?> sendVerificationCode(@RequestBody SendCodeRequest request) {
+        String email = request.getEmail();
+
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "ok", false,
+                    "message", "Email is required"
+            ));
+        }
+
+        if (userRepository.existsByEmail(email)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "ok", false,
+                    "message", "Email already exists"
+            ));
+        }
+
+        String code = verificationCodeService.generateCode(email);
+        emailService.sendVerificationCode(email, code);
+
+        return ResponseEntity.ok(Map.of(
+                "ok", true,
+                "message", "Verification code sent"
+        ));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+        if (
+                request.getUsername() == null || request.getUsername().isBlank() ||
+                        request.getEmail() == null || request.getEmail().isBlank() ||
+                        request.getPassword() == null || request.getPassword().isBlank() ||
+                        request.getVerificationCode() == null || request.getVerificationCode().isBlank()
+        ) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "ok", false,
+                    "message", "Please fill in all fields"
+            ));
+        }
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "ok", false,
+                    "message", "Email already exists"
+            ));
+        }
+
+        boolean codeValid = verificationCodeService.verifyCode(
+                request.getEmail(),
+                request.getVerificationCode()
+        );
+
+        if (!codeValid) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "ok", false,
+                    "message", "Invalid or expired verification code"
+            ));
+        }
+
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of(
+                "ok", true,
+                "message", "Register successfully"
+        ));
+    }
     @GetMapping("/all")
     public ResponseEntity<?> getUsers() {
         List<UserNameAndEmail> res=userRepository.findAllNameAndEmail();
@@ -51,39 +128,6 @@ public class UserController {
                         user.getUsername()
                 )
         );
-    }
-
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-
-        if (userRepository.existsByEmail(request.getEmail())) {
-            return ResponseEntity
-                    .badRequest()
-                    .body("Email already exists");
-        }
-
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-
-        String encodedPassword = passwordEncoder.encode(request.getPassword());
-        user.setPassword(encodedPassword);
-
-        User savedUser = userRepository.save(user);
-
-        String token = jwtUtil.generateToken(
-                savedUser.getId(),
-                savedUser.getEmail()
-        );
-
-        RegisterResponse response = new RegisterResponse(
-                savedUser.getId(),
-                savedUser.getUsername(),
-                savedUser.getEmail(),
-                token
-        );
-
-        return ResponseEntity.ok(response);
     }
 
 }

@@ -33,6 +33,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
+                                "/api/users/send-code",
                                 "/api/users/register",
                                 "/api/users/login",
                                 "/api/users/all"
