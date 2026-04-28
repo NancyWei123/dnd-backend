@@ -103,6 +103,25 @@ public class UserController {
         List<UserNameAndEmail> res=userRepository.findAllNameAndEmail();
         return ResponseEntity.ok(res);
     }
+    @GetMapping
+    public ResponseEntity<?> getUser(Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).body(Map.of(
+                    "message", "Unauthorized"
+            ));
+        }
+
+        Long userId = Long.parseLong(authentication.getName());
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return ResponseEntity.ok(Map.of(
+                "id", user.getId(),
+                "username", user.getUsername(),
+                "email", user.getEmail()
+        ));
+    }
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
 
