@@ -36,6 +36,9 @@ public class Chapter {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "music_url")
+    private String musicUrl;
+
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();

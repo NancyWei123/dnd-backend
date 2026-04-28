@@ -181,7 +181,8 @@ public class ChapterController {
                 chapter.getContentMd(),
                 chapter.getChapterOrder(),
                 chapter.getCreatedAt(),
-                chapter.getUpdatedAt()
+                chapter.getUpdatedAt(),
+                chapter.getMusicUrl()
         );
     }
 }
