@@ -4,6 +4,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 import org.target.dndbackend.Entity.BookReaderPermission;
 
+import java.util.List;
+
 public interface BookReaderPermissionRepository
         extends JpaRepository<BookReaderPermission, Long> {
 
@@ -13,4 +15,6 @@ public interface BookReaderPermissionRepository
 
     @Transactional
     void deleteByBook_Id(Long bookId);
+
+    List<BookReaderPermission> findByBook_Id(Long bookId);
 }

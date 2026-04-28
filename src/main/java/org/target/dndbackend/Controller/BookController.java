@@ -3,6 +3,7 @@ package org.target.dndbackend.Controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.target.dndbackend.Dto.BookResponse;
 import org.target.dndbackend.Dto.CreateBookRequest;
@@ -16,6 +17,7 @@ import org.target.dndbackend.Repository.BookRepository;
 import org.target.dndbackend.Repository.UserRepository;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/books")
@@ -25,6 +27,27 @@ public class BookController {
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
     private final BookReaderPermissionRepository bookReaderPermissionRepository;
+
+    @GetMapping("/{bookId}/readers")
+    public ResponseEntity<?> getBookReaders(@PathVariable Long bookId) {
+        List<BookReaderPermission> permissions =
+                bookReaderPermissionRepository.findByBook_Id(bookId);
+
+        List<Map<String, Object>> readers = permissions.stream()
+                .map(permission -> {
+                    User user = permission.getUser();
+
+                    return Map.<String, Object>of(
+                            "id", user.getId(),
+                            "username", user.getUsername(),
+                            "email", user.getEmail()
+                    );
+                })
+                .toList();
+
+        return ResponseEntity.ok(readers);
+    }
+
     @PostMapping("/{bookId}/readers")
     public ResponseEntity<?> updateBookReaders(
             Authentication authentication,
@@ -125,6 +148,7 @@ public class BookController {
     }
 
     @PutMapping("/{bookId}")
+    @Transactional
     public ResponseEntity<?> updateBook(
             Authentication authentication,
             @PathVariable Long bookId,
@@ -142,6 +166,7 @@ public class BookController {
         book.setTitle(request.getTitle());
         book.setDescription(request.getDescription());
         book.setCoverUrl(request.getCoverUrl());
+        book.setPermission(request.getPermission());
 
         if (request.getStatus() != null) {
             book.setStatus(request.getStatus());
@@ -149,10 +174,29 @@ public class BookController {
 
         Book updatedBook = bookRepository.save(book);
 
+        // Save selected readers
+        bookReaderPermissionRepository.deleteByBook_Id(bookId);
+
+        if ("protected".equalsIgnoreCase(request.getPermission())
+                && request.getSelectedReaderIds() != null) {
+
+            for (Long readerId : request.getSelectedReaderIds()) {
+                User reader = userRepository.findById(readerId)
+                        .orElseThrow(() -> new RuntimeException("User not found: " + readerId));
+
+                BookReaderPermission permission = new BookReaderPermission();
+                permission.setBook(updatedBook);
+                permission.setUser(reader);
+
+                bookReaderPermissionRepository.save(permission);
+            }
+        }
+
         return ResponseEntity.ok(toResponse(updatedBook));
     }
 
     @DeleteMapping("/{bookId}")
+    @Transactional
     public ResponseEntity<?> deleteBook(
             Authentication authentication,
             @PathVariable Long bookId
@@ -166,6 +210,7 @@ public class BookController {
             return ResponseEntity.status(403).body("You cannot delete this book");
         }
 
+        bookReaderPermissionRepository.deleteByBook_Id(bookId);
         bookRepository.delete(book);
 
         return ResponseEntity.ok("Book deleted successfully");
@@ -179,6 +224,7 @@ public class BookController {
                 book.getDescription(),
                 book.getCoverUrl(),
                 book.getStatus(),
+                book.getPermission(),
                 book.getCreatedAt(),
                 book.getUpdatedAt()
         );

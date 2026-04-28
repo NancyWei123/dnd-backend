@@ -21,6 +21,8 @@ public class BookResponse {
 
     private String status;
 
+    private String permission;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
