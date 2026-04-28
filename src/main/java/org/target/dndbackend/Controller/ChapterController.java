@@ -143,7 +143,7 @@ public class ChapterController {
         chapter.setTitle(request.getTitle());
         chapter.setContentMd(request.getContentMd());
         chapter.setChapterOrder(request.getChapterOrder());
-
+        chapter.setMusicUrl(request.getMusicUrl());
         Chapter updatedChapter = chapterRepository.save(chapter);
 
         return ResponseEntity.ok(toResponse(updatedChapter));

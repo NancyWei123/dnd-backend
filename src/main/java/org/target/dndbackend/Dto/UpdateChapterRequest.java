@@ -5,6 +5,8 @@ import lombok.Data;
 @Data
 public class UpdateChapterRequest {
 
+    public String musicUrl;
+
     private String title;
 
     private String contentMd;
