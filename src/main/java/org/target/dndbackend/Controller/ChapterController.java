@@ -7,14 +7,19 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.target.dndbackend.Dto.ChapterResponse;
 import org.target.dndbackend.Dto.CreateChapterRequest;
+import org.target.dndbackend.Dto.NotifyRequest;
 import org.target.dndbackend.Dto.UpdateChapterRequest;
 import org.target.dndbackend.Entity.Book;
 import org.target.dndbackend.Entity.Chapter;
+import org.target.dndbackend.Entity.User;
 import org.target.dndbackend.Repository.BookReaderPermissionRepository;
 import org.target.dndbackend.Repository.BookRepository;
 import org.target.dndbackend.Repository.ChapterRepository;
+import org.target.dndbackend.Repository.UserRepository;
+import org.target.dndbackend.Service.EmailService;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/books/{bookId}/chapters")
@@ -24,7 +29,6 @@ public class ChapterController {
     private final ChapterRepository chapterRepository;
     private final BookRepository bookRepository;
     private final BookReaderPermissionRepository bookReaderPermissionRepository;
-
     @PostMapping
     public ResponseEntity<?> createChapter(
             Authentication authentication,

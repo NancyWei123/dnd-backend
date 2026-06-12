@@ -14,6 +14,7 @@ import org.target.dndbackend.Utils.JwtUtil;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
@@ -51,6 +52,24 @@ public class UserController {
                 "ok", true,
                 "message", "Verification code sent"
         ));
+    }
+    @PostMapping("/notifications")
+    public ResponseEntity<?> notifyChapter(
+            Authentication authentication,
+            @RequestBody NotifyRequest notifyRequest
+    ){
+        List<Long> userIds=notifyRequest.getUserIds();
+        for(int i = 0; i < userIds.size(); i++) {
+            Optional<User> optionalUser = userRepository.findById(userIds.get(i));
+            if (optionalUser.isPresent()) {
+                User user = optionalUser.get();
+                String email = user.getEmail();
+                emailService.sendNotification(email, notifyRequest.getBookId());
+            }
+        }
+        return ResponseEntity.ok(
+                Map.of("message", "Notifications sent successfully")
+        );
     }
 
     @PostMapping("/register")
@@ -99,10 +118,19 @@ public class UserController {
         ));
     }
     @GetMapping("/all")
-    public ResponseEntity<?> getUsers() {
-        List<UserNameAndEmail> res=userRepository.findAllNameAndEmail();
+    public ResponseEntity<?> getUsers(
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String token = authHeader.replace("Bearer ", "");
+        String currentUserEmail = jwtUtil.extractEmail(token);
+        List<UserNameAndEmail> res = userRepository
+                .findAllNameAndEmail()
+                .stream()
+                .filter(user -> !user.getEmail().equals(currentUserEmail))
+                .toList();
         return ResponseEntity.ok(res);
     }
+
     @GetMapping
     public ResponseEntity<?> getUser(Authentication authentication) {
         if (authentication == null) {

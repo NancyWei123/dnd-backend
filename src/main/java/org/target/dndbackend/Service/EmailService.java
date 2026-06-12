@@ -28,4 +28,15 @@ public class EmailService {
 
         mailSender.send(message);
     }
+    public void sendNotification(String toEmail,Long bookId) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(toEmail);
+        message.setSubject("New Chapter Notification");
+        message.setText(
+                "http://localhost:5173/books/"+bookId+"/read"
+        );
+
+        mailSender.send(message);
+    }
 }
