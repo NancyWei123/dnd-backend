@@ -118,7 +118,8 @@ public class BookController {
                 .toList();
         return ResponseEntity.ok(books);
     }
-    @GetMapping
+
+    @GetMapping("/my")
     public ResponseEntity<?> getMyBooks(Authentication authentication) {
         Long userId = (Long) authentication.getPrincipal();
 

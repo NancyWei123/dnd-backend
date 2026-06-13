@@ -13,7 +13,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     FROM books b
     WHERE
         b.user_id = :userId
-        OR b.permission = 'public'
+        OR (b.permission = 'public' AND b.status='PUBLISHED')
         OR (
             b.permission = 'protected'
             AND EXISTS (
@@ -22,6 +22,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
                 WHERE brp.book_id = b.id
                 AND brp.user_id = :userId
             )
+            AND b.status='PUBLISHED'
         )
     """, nativeQuery = true)
     List<Book> findReadableBooksByUserId(@Param("userId") Long userId);
