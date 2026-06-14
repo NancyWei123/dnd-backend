@@ -25,8 +25,75 @@ public class UserController {
     private final JwtUtil jwtUtil;
     private final VerificationCodeService verificationCodeService;
     private final EmailService emailService;
-
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    @PostMapping("/password")
+    public ResponseEntity<?> changePassword(Authentication authentication,@RequestBody ChangePasswordRequest changePasswordRequest) {
+        Long userId = Long.parseLong(authentication.getName());
+        String oldPassword = changePasswordRequest.getOldPassword();
+        boolean passwordMatch = passwordEncoder.matches(
+                oldPassword,
+                userRepository.findById(userId).get().getPassword()
+        );
+        if (passwordMatch) {
+            User user=userRepository.findById(userId).get();
+            user.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
+            userRepository.save(user);
+            return ResponseEntity.ok(Map.of(
+                    "ok", true,
+                    "message", "Change successfully"
+            ));
+        }
+        return ResponseEntity.ok(Map.of(
+                "ok", false,
+                "message", "Old Password Doesn't Match"
+        ));
+    }
+
+    @PostMapping("/forget-password")
+    public ResponseEntity<?> forgetPassword(Authentication authentication, @RequestBody ForgetPasswordRequest forgetPasswordRequest){
+        Long userId = Long.parseLong(authentication.getName());
+        User user=userRepository.findById(userId).get();
+        boolean codeValid = verificationCodeService.verifyCode(
+                user.getEmail(),
+                forgetPasswordRequest.getVerificationCode()
+        );
+        if(codeValid){
+            user.setPassword(passwordEncoder.encode(forgetPasswordRequest.getNewPassword()));
+            userRepository.save(user);
+            return ResponseEntity.ok(Map.of(
+                    "ok", true,
+                    "message", "Change successfully"
+            ));
+        }
+        return ResponseEntity.badRequest().body(Map.of(
+                "ok", false,
+                "message", "Verification code doesn't match"
+        ));
+    }
+
+    @PostMapping("/change-email")
+    public ResponseEntity<?> changeEmail(Authentication authentication,@RequestBody ChangeEmailRequest changeEmailRequest){
+        Long userId = Long.parseLong(authentication.getName());
+        boolean codeValid = verificationCodeService.verifyCode(
+                changeEmailRequest.getNewEmail(),
+                changeEmailRequest.getVerificationCode()
+        );
+        if(codeValid){
+            User user=userRepository.findById(userId).get();
+            user.setEmail(changeEmailRequest.getNewEmail());
+            userRepository.save(user);
+            return ResponseEntity.ok(Map.of(
+                    "ok", true,
+                    "message", "Change successfully"
+            ));
+        }
+        return ResponseEntity.badRequest().body(Map.of(
+                "ok", false,
+                "message", "Verification code doesn't match"
+        ));
+    }
+
     @PostMapping("/send-code")
     public ResponseEntity<?> sendVerificationCode(@RequestBody SendCodeRequest request) {
         String email = request.getEmail();
@@ -35,13 +102,6 @@ public class UserController {
             return ResponseEntity.badRequest().body(Map.of(
                     "ok", false,
                     "message", "Email is required"
-            ));
-        }
-
-        if (userRepository.existsByEmail(email)) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "ok", false,
-                    "message", "Email already exists"
             ));
         }
 
