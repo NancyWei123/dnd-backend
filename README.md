@@ -1,8 +1,2 @@
-# Need to do
-## Role control(who can read the book)
-## Register with email
-## File upload
-## Music
-## User center(Change password...)
-## @Game player
-
+# Dnd Helper Backend
+## Frontend https://github.com/NancyWei123/dnd-helper
