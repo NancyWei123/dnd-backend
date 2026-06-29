@@ -1,76 +1,66 @@
-create database dnd;
+CREATE DATABASE dnd;
 
-create table book_reader_permissions
+\c dnd
+
+CREATE TABLE users
 (
-    id      bigserial
-        primary key,
-    book_id bigint not null
-        constraint fk_book_reader_book
-            references books
-            on delete cascade,
-    user_id bigint not null
-        constraint fk_book_reader_user
-            references users
-            on delete cascade,
-    constraint unique_book_reader
-        unique (book_id, user_id),
-    constraint uknlgahcj00fdervlh4dpimgg9w
-        unique ()
+    id         bigserial PRIMARY KEY,
+    username   varchar(100) NOT NULL,
+    email      varchar(150) NOT NULL UNIQUE,
+    password   varchar(255) NOT NULL,
+    created_at timestamp DEFAULT CURRENT_TIMESTAMP
 );
 
-alter table book_reader_permissions
-    owner to postgres;
+ALTER TABLE users OWNER TO postgres;
 
-create table books
+CREATE TABLE books
 (
-    id          bigserial
-        primary key,
-    user_id     bigint                                           not null
-        constraint fk_books_user
-            references users
-            on delete cascade,
-    title       varchar(200)                                     not null,
+    id          bigserial PRIMARY KEY,
+    user_id     bigint NOT NULL
+        CONSTRAINT fk_books_user
+            REFERENCES users
+            ON DELETE CASCADE,
+    title       varchar(200) NOT NULL,
     description text,
     cover_url   text,
-    status      varchar(30) default 'DRAFT'::character varying,
-    created_at  timestamp   default CURRENT_TIMESTAMP,
-    updated_at  timestamp   default CURRENT_TIMESTAMP,
-    permission  varchar(20) default 'private'::character varying not null
+    status      varchar(30) DEFAULT 'DRAFT',
+    created_at  timestamp DEFAULT CURRENT_TIMESTAMP,
+    updated_at  timestamp DEFAULT CURRENT_TIMESTAMP,
+    permission  varchar(20) DEFAULT 'private' NOT NULL
 );
 
-alter table books
-    owner to postgres;
+ALTER TABLE books OWNER TO postgres;
 
-create table chapters
+CREATE TABLE chapters
 (
-    id            bigserial
-        primary key,
-    book_id       bigint       not null
-        constraint fk_chapters_book
-            references books
-            on delete cascade,
-    title         varchar(200) not null,
+    id            bigserial PRIMARY KEY,
+    book_id       bigint NOT NULL
+        CONSTRAINT fk_chapters_book
+            REFERENCES books
+            ON DELETE CASCADE,
+    title         varchar(200) NOT NULL,
     content_md    text,
-    chapter_order integer      not null,
-    created_at    timestamp default CURRENT_TIMESTAMP,
-    updated_at    timestamp default CURRENT_TIMESTAMP,
+    chapter_order integer NOT NULL,
+    created_at    timestamp DEFAULT CURRENT_TIMESTAMP,
+    updated_at    timestamp DEFAULT CURRENT_TIMESTAMP,
     music_url     varchar(500)
 );
 
-alter table chapters
-    owner to postgres;
+ALTER TABLE chapters OWNER TO postgres;
 
-create table users
+CREATE TABLE book_reader_permissions
 (
-    id         bigserial
-        primary key,
-    username   varchar(100) not null,
-    email      varchar(150) not null
-        unique,
-    password   varchar(255) not null,
-    created_at timestamp default CURRENT_TIMESTAMP
+    id      bigserial PRIMARY KEY,
+    book_id bigint NOT NULL
+        CONSTRAINT fk_book_reader_book
+            REFERENCES books
+            ON DELETE CASCADE,
+    user_id bigint NOT NULL
+        CONSTRAINT fk_book_reader_user
+            REFERENCES users
+            ON DELETE CASCADE,
+    CONSTRAINT unique_book_reader
+        UNIQUE (book_id, user_id)
 );
 
-alter table users
-    owner to postgres;
-
+ALTER TABLE book_reader_permissions OWNER TO postgres;
